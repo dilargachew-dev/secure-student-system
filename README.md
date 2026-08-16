@@ -9,48 +9,67 @@
 ---
 
 ## 📌 Executive Summary & Project Overview
-The **Full-Stack Secure Student Management System (v2.0.0)** is a production-hardened RESTful application built for educational institutions. Building upon Assignment 4, this release implements security controls aligned with the **OWASP Top 10 vulnerabilities (2021)**. The system incorporates JWT authentication, RBAC authorization, bcrypt password hashing, input sanitization, security headers via Helmet.js, rate-limiting against brute-force attacks, and comprehensive security testing.
+
+The **Full-Stack Secure Student Management System (v2.0.0)** is a production-hardened RESTful application built for educational institutions. This release implements security controls aligned with the **OWASP Top 10 (2021)** framework. The system incorporates JWT-based dual-token authentication, Role-Based Access Control (RBAC), bcrypt password hashing, prepared SQL statements, security headers via Helmet.js, IP rate-limiting, and containerized deployment with Docker.
 
 ---
 
 ## 🔐 Key Security Architecture
 
 ### 1. Authentication & Authorization
-* **JWT Authentication:** Stateless token-based authentication using short-lived Access Tokens (15-minute validity) stored in `HTTP-Only`, `SameSite=Strict` cookies.
+* **JWT Dual-Token Strategy:** Stateless authentication using short-lived Access Tokens (15-min validity) stored in `HTTP-Only`, `SameSite=Strict` cookies, paired with secure Refresh Tokens.
 * **Role-Based Access Control (RBAC):**
-  * **Admin:** Full CRUD operations across all resources (Users, Students, Courses, Grades, Audit Logs).
-  * **Teacher:** View assigned student rosters, submit/edit grades, and update course materials.
+  * **Admin:** Full CRUD operations across all resources (Users, Students, Courses, Grades, System Logs).
+  * **Teacher:** View student rosters, submit/edit grades, and update course materials.
   * **Student:** Read-only access to personal profile, enrolled courses, and individual grades.
 
 ### 2. Secure Data Protection
-* **Password Hashing:** Passwords hashed using `bcrypt` with a salt factor of 12. Minimum 12-character complexity required.
-* **Parameterized Queries:** 100% prepared SQL statements to eliminate SQL Injection (SQLi).
-* **Rate Limiting:** IP-based brute-force defense (max 5 requests per 15 minutes on authentication endpoints).
+* **Password Hashing:** Passwords hashed using `bcryptjs` with a salt factor of 12. Minimum 12-character complexity required.
+* **SQL Injection (SQLi) Mitigation:** 100% prepared SQL statements (`db.execute()`) using parameterized placeholders (`?`).
+* **Rate Limiting:** IP-based brute-force defense via `express-rate-limit` (max 5 requests per 15 minutes on authentication routes).
 
 ### 3. Input Validation & Security Headers
-* **Input Sanitization:** Requests sanitized using `express-validator` and `DOMPurify` to mitigate Stored & Reflected XSS.
-* **Security Headers (Helmet.js):** Enabled `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, and strict `HSTS`.
+* **Input Sanitization:** Incoming payloads sanitized using `express-validator` to mitigate XSS attacks.
+* **Security Headers (Helmet.js):** Configured `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `X-XSS-Protection`, and strict `HSTS`.
 
 ---
 
-## 🤝 TCP 3-Way Handshake Architecture
+## 🏗️ System Architecture & Data Flow
 
-Before any HTTP/HTTPS request, JWT authentication, or database stream occurs, a reliable TCP connection is established between the client and the server using the classic 3-Way Handshake protocol.
+Below is the dynamic execution path of an incoming HTTP request encountering the security middleware engine:
 
 ```mermaid
 sequenceDiagram
     autonumber
-    participant Client
-    participant Server
+    actor Attacker as 🚨 Scanner / Attacker
+    actor User as 👤 Legitimate User
+    participant App as 🌐 Web Application
+    participant Auth as 🛡️ Security Middleware
+    participant DB as 🗄️ Database
+    participant Audit as 📊 Central SOC / Audit Log
 
-    Note over Client, Server: 1. Connection Initialization
-    Client->>Server: SYN (Seq=X)
-    Note over Client,Server: Client requests a connection with initial Sequence Number X
+    %% Normal Traffic Flow
+    rect rgb(30, 40, 30)
+        Note over User, DB: Normal Traffic Flow
+        User->>App: GET /api/v1/students (Bearer Token)
+        App->>Auth: Evaluate Route & Validate JWT
+        Auth-->>App: Pass (next())
+        App->>DB: Parameterized Query (SELECT * FROM students)
+        DB-->>App: Return SQL Results
+        App-->>User: 200 OK (Render Student Data)
+    end
 
-    Note over Client, Server: 2. Server Response & Acknowledgment
-    Server-->>Client: SYN-ACK (Seq=Y, Ack=X+1)
-    Note over Client,Server: Server acknowledges Client's SYN and sends its own Sequence Number Y
-
-    Note over Client, Server: 3. Connection Established
-    Client->>Server: ACK (Seq=X+1, Ack=Y+1)
-    Note over Client,Server: Client acknowledges Server's SYN. Full-duplex connection ready!
+    %% Attack Detection Flow
+    rect rgb(50, 30, 30)
+        Note over Attacker, Audit: Attack Detection Flow
+        Attacker->>App: POST /api/v1/auth/login (SQLi Payload / Brute Force)
+        App->>Auth: Intercept Request
+        Auth->>Auth: Match Attack Pattern / Rate Limit Triggered!
+        
+        par [Asynchronous Security Alert]
+            Auth->>Audit: Push Event via Logs (IP, Headers, Payload)
+            Audit->>Audit: Flash Red SOC Alert (< 100ms)
+        and [Security Response]
+            Auth-->>Attacker: 403 Forbidden / 429 Too Many Requests
+        end
+    end
