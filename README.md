@@ -51,6 +51,30 @@ The **Full-Stack Secure Student Management System (v2.0.0)** is a production-har
 
 ---
 
+secure-student-system/
+├── config/
+│   └── db.js                 # Parameterized MySQL Connection Pool
+├── middleware/
+│   └── auth.js               # JWT Verification & RBAC Middleware
+├── models/
+│   └── studentModel.js        # Secure Database Queries
+├── routes/
+│   ├── auth.js               # Login & Registration Endpoints
+│   ├── students.js           # Student Profile Management
+│   └── grades.js             # Grade Management
+├── tests/
+│   ├── security.auth.test.js # Auth & RBAC Tests
+│   └── security.injection.test.js # Penetration Tests (XSS/SQLi)
+├── .dockerignore              # Docker Build Exclusions
+├── .env.example              # Environment Configuration Template
+├── Dockerfile                # Containerization Blueprint
+├── docker-compose.yml        # Multi-Container Orchestration
+├── server.js                 # Application Entry Point
+├── package.json
+└── README.md
+
+---
+
 ## 🏗️ System Architecture & Data Flow
 
 Below is the dynamic execution path of an incoming HTTP request encountering the security middleware engine:
@@ -90,29 +114,3 @@ sequenceDiagram
             Auth-->>Attacker: 403 Forbidden / 429 Too Many Requests
         end
     end
-
-
-
---
-
-secure-student-system/
-├── config/
-│   └── db.js                 # Parameterized MySQL Connection Pool
-├── middleware/
-│   └── auth.js               # JWT Verification & RBAC Middleware
-├── models/
-│   └── studentModel.js        # Secure Database Queries
-├── routes/
-│   ├── auth.js               # Login & Registration Endpoints
-│   ├── students.js           # Student Profile Management
-│   └── grades.js             # Grade Management
-├── tests/
-│   ├── security.auth.test.js # Auth & RBAC Tests
-│   └── security.injection.test.js # Penetration Tests (XSS/SQLi)
-├── .dockerignore              # Docker Build Exclusions
-├── .env.example              # Environment Configuration Template
-├── Dockerfile                # Containerization Blueprint
-├── docker-compose.yml        # Multi-Container Orchestration
-├── server.js                 # Application Entry Point
-├── package.json
-└── README.md
