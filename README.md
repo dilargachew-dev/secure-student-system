@@ -1,3 +1,20 @@
+<div align="center">
+
+# Full-Stack Express + MySQL + Docker
+
+### A Production-Hardened Multi-Tier Student Management & Security System
+
+![Node.js](https://img.shields.io/badge/Node.js-v18%2B-339933?style=for-the-badge&logo=node.js&logoColor=white)
+![Express.js](https://img.shields.io/badge/Express.js-v4.18-000000?style=for-the-badge&logo=express&logoColor=white)
+![MySQL](https://img.shields.io/badge/MySQL-v8.0-4479A1?style=for-the-badge&logo=mysql&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-v24.0-2496ED?style=for-the-badge&logo=docker&logoColor=white)
+![JWT](https://img.shields.io/badge/JWT-Dual--Token-000000?style=for-the-badge&logo=json-web-tokens&logoColor=white)
+![Jest](https://img.shields.io/badge/Jest-Security--Tests-C21325?style=for-the-badge&logo=jest&logoColor=white)
+
+</div>
+
+---
+
 # 🛡️ Full-Stack Secure Student Management System
 
 **Course / Module:** Secure Software Development  
