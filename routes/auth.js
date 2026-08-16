@@ -1,67 +1,85 @@
 const express = require('express');
-const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
-const { body, validationResult } = require('express-validator');
+const bcrypt = require('bcryptjs');
 const db = require('../config/db');
 
 const router = express.Router();
 
-// Strict Password Complexity Policy Validation
-const registerValidation = [
-    body('email').isEmail().normalizeEmail(),
-    body('password')
-        .isLength({ min: 12 })
-        .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*])/)
-        .withMessage('Password must be 12+ chars with uppercase, lowercase, number, and special char.'),
-    body('name').trim().notEmpty().escape(),
-    body('role').isIn(['Admin', 'Teacher', 'Student'])
-];
-
-// Register Endpoint
-router.post('/register', registerValidation, async (req, res) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-        return res.status(400).json({ errors: errors.array() });
-    }
-
-    const { name, email, password, role } = req.body;
-
-    try {
-        const hashedPassword = await bcrypt.hash(password, 12);
-        const sql = 'INSERT INTO users (name, email, password, role) VALUES (?, ?, ?, ?)';
-        const [result] = await db.execute(sql, [name, email, hashedPassword, role || 'Student']);
-
-        res.status(201).json({ message: 'User registered successfully', userId: result.insertId });
-    } catch (err) {
-        if (err.code === 'ER_DUP_ENTRY') {
-            return res.status(400).json({ error: 'Email already exists.' });
-        }
-        res.status(500).json({ error: 'Database error.' });
-    }
-});
-
-// Login Endpoint
+// 1. User Login (Access Token + Refresh Token)
 router.post('/login', async (req, res) => {
     const { email, password } = req.body;
 
     try {
-        const [rows] = await db.execute('SELECT * FROM users WHERE email = ?', [email]);
-        const user = rows[0];
-
-        if (!user || !(await bcrypt.compare(password, user.password))) {
-            return res.status(401).json({ error: 'Invalid credentials.' });
+        const [users] = await db.execute('SELECT * FROM users WHERE email = ?', [email]);
+        if (users.length === 0) {
+            return res.status(401).json({ error: 'Invalid credentials' });
         }
 
-        const token = jwt.sign(
-            { id: user.id, email: user.email, role: user.role },
+        const user = users[0];
+      const isMatch = await bcrypt.compare(password, user.password);
+        if (!isMatch) {
+            return res.status(401).json({ error: 'Invalid credentials' });
+        }
+
+        // Short-lived Access Token (15 mins)
+        const accessToken = jwt.sign(
+            { id: user.id, role: user.role },
             process.env.JWT_SECRET,
-            { expiresIn: process.env.JWT_EXPIRES_IN || '15m' }
+            { expiresIn: '15m' }
         );
 
-        res.json({ message: 'Authentication successful', token });
+        // Long-lived Refresh Token (7 days)
+        const refreshToken = jwt.sign(
+            { id: user.id },
+            process.env.REFRESH_TOKEN_SECRET,
+            { expiresIn: '7d' }
+        );
+
+        // Refresh Token በ HTTP-Only Cookie መላክ
+        res.cookie('refreshToken', refreshToken, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'strict',
+            maxAge: 7 * 24 * 60 * 60 * 1000
+        });
+
+        res.json({
+            message: 'Authentication successful',
+            accessToken
+        });
     } catch (err) {
-        res.status(500).json({ error: 'Authentication failed.' });
+        res.status(500).json({ error: 'Server error during login' });
     }
+});
+
+// 2. Refresh Token Endpoint
+router.post('/refresh-token', (req, res) => {
+    const refreshToken = req.cookies?.refreshToken;
+
+    if (!refreshToken) {
+        return res.status(401).json({ error: 'Refresh Token required' });
+    }
+
+    try {
+        const decoded = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET);
+
+        const newAccessToken = jwt.sign(
+            { id: decoded.id, role: decoded.role },
+            process.env.JWT_SECRET,
+            { expiresIn: '15m' }
+        );
+
+        res.json({ accessToken: newAccessToken });
+    } catch (err) {
+        console.error('Login Error Details:', err); // ኤረሩን በቴርሚናል ላይ ያትመዋል
+        res.status(500).json({ error: 'Server error during login' });
+    }
+});
+
+// 3. Logout
+router.post('/logout', (req, res) => {
+    res.clearCookie('refreshToken');
+    res.json({ message: 'Logged out successfully' });
 });
 
 module.exports = router;

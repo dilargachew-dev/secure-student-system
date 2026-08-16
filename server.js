@@ -11,6 +11,9 @@ const gradeRoutes = require('./routes/grades');
 
 const app = express();
 
+const cookieParser = require('cookie-parser');
+app.use(cookieParser());
+
 // 2. HTTP Security Headers (Helmet.js)
 app.use(helmet());
 
