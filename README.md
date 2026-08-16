@@ -29,7 +29,30 @@ The **Full-Stack Secure Student Management System (v2.0.0)** is a production-har
 
 ### 3. Input Validation & Security Headers
 * **Input Sanitization:** Requests sanitized using `express-validator` and `DOMPurify` to mitigate Stored & Reflected XSS.
-* **Security Headers (Helmet.js):** Enabled `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, and strict `HSTS`.
+* **Security Headers (Helmet.js):** Enabled `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, and 
+strict `HSTS`.
+
+## 🤝 TCP 3-Way Handshake Architecture
+
+Before any HTTP/HTTPS request, JWT authentication, or database stream occurs, a reliable TCP connection is established between the client and the server using the classic 3-Way Handshake protocol.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant Client
+    participant Server
+
+    Note over Client, Server: 1. Connection Initialization
+    Client->>Server: SYN (Seq=X)
+    Note over Client,Server: Client requests a connection with initial Sequence Number X
+
+    Note over Client, Server: 2. Server Response & Acknowledgment
+    Server-->>Client: SYN-ACK (Seq=Y, Ack=X+1)
+    Note over Client,Server: Server acknowledges Client's SYN and sends its own Sequence Number Y
+
+    Note over Client, Server: 3. Connection Established
+    Client->>Server: ACK (Seq=X+1, Ack=Y+1)
+    Note over Client,Server: Client acknowledges Server's SYN. Full-duplex connection ready!
 
 ---
 
