@@ -50,7 +50,9 @@ The **Full-Stack Secure Student Management System (v2.0.0)** is a production-har
 * **Security Headers (Helmet.js):** Configured `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `X-XSS-Protection`, and strict `HSTS`.
 
 ---
+## 📁 Project Directory Structure
 
+```text
 secure-student-system/
 ├── config/
 │   └── db.js                 # Parameterized MySQL Connection Pool
