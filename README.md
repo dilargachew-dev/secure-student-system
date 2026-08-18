@@ -20,8 +20,7 @@
 **Course / Module:** Secure Software Development  
 **System Name:** Full-Stack Student Management System (Secure Edition)  
 **Version:** 2.0.0 (Hardened Security Implementation)  
-**Student Name:** Dilargachew Ashenafi  
-**Student ID:** CTC-1287-26  
+**Student Name:** Dilargachew Ashenafi 
 
 ---
 
